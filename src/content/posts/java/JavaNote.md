@@ -3,7 +3,7 @@ title: Java Note
 published: 2025-03-09
 description: 'Java学习之路'
 image: ''
-tags: [java, 学习，拾遗]
+tags: [java, 学习, 拾遗]
 category: 'java'
 draft: false 
 ---
