@@ -3,7 +3,7 @@ title: Java Note
 published: 2025-03-09
 description: 'Java学习之路'
 image: ''
-tags: [java, 学习, 拾遗]
+tags: [java, 拾遗]
 category: 'java'
 draft: false 
 ---
@@ -50,104 +50,6 @@ draft: false
 
 总结来说，Java中的参数传递总是按值传递的，但是当传递的是对象引用时，可以间接修改对象的状态，这常常给人一种引用传递的错觉。要准确理解这一点，重要的是要区分引用本身（作为参数传递的值）和引用指向的对象。
 
-## 监控对象数量
-
-在Java中，精确地控制对象的生命周期是非常有限的，因为Java的垃圾收集器（Garbage Collector, GC）会自动管理内存。不过，你可以使用一些设计模式和技术手段来近似实现这一功能。
-以下是一些方法：
-
-**使用引用计数**
-
-你可以手动实现引用计数，但这通常不推荐，因为它会增加复杂性，并且Java的垃圾收集器已经足够高效。
-```java
-public class RefCounter {
-    private static final Map<Object, Integer> referenceCounts = new HashMap<>();
-    public static void retain(Object obj) {
-        referenceCounts.merge(obj, 1, Integer::sum);
-    }
-    public static void release(Object obj) {
-        if (referenceCounts.containsKey(obj)) {
-            int count = referenceCounts.get(obj);
-            if (count == 1) {
-                referenceCounts.remove(obj);
-                // 可以在这里调用对象的清理逻辑
-            } else {
-                referenceCounts.put(obj, count - 1);
-            }
-        }
-    }
-    public static int getRefCount(Object obj) {
-        return referenceCounts.getOrDefault(obj, 0);
-    }
-}
-```
-**使用弱引用和引用队列**
-
-Java提供了弱引用（WeakReference）和引用队列（ReferenceQueue），可以用来监控对象何时变得不可达。
-```java
-public class WeakReferenceExample {
-    private static ReferenceQueue<MyClass> queue = new ReferenceQueue<>();
-    private static Map<WeakReference<MyClass>, String> weakReferences = new HashMap<>();
-    public static void main(String[] args) {
-        MyClass obj = new MyClass();
-        WeakReference<MyClass> weakRef = new WeakReference<>(obj, queue);
-        weakReferences.put(weakRef, "Object info");
-        // 模拟垃圾收集
-        obj = null;
-        System.gc();
-        // 检查对象是否被回收
-        Reference<? extends MyClass> ref = queue.poll();
-        if (ref != null) {
-            weakReferences.remove(ref);
-            // 对象已被回收，可以进行清理工作
-        }
-    }
-}
-```
-**使用try-with-resources或finally块**
-
-对于实现了AutoCloseable接口的资源，可以使用try-with-resources语句来自动管理资源。
-```java
-public class MyResource implements AutoCloseable {
-    public void doSomething() {
-        // ...
-    }
-    @Override
-    public void close() throws Exception {
-        // 清理资源
-    }
-}
-public class ResourceExample {
-    public static void main(String[] args) {
-        try (MyResource resource = new MyResource()) {
-            resource.doSomething();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // 当try块结束时，resource会自动调用close方法
-    }
-}
-```
-**使用显式生命周期管理**
-
-在某些情况下，你可以设计API，要求用户显式地开始和结束对象的生命周期。
-```java
-public class LifecycleObject {
-    private boolean started = false;
-    public void start() {
-        if (!started) {
-            // 开始逻辑
-            started = true;
-        }
-    }
-    public void stop() {
-        if (started) {
-            // 停止逻辑
-            started = false;
-        }
-    }
-}
-```
-使用这些方法，你可以更好地控制对象的生命周期，但要注意，这些方法通常会增加代码的复杂性，并且可能带来性能开销。在设计应用程序时，应该权衡这些因素。
 
 ## 访问控制修饰符
 
@@ -250,3 +152,23 @@ public class MyRunnable implements Runnable
 
 但是以上代码中我们使用了 volatile 修饰 active，所以该循环会停止。
 
+## 标记接口
+最常用的标记接口是没有包含任何方法的接口。
+
+标记接口是没有任何方法和属性的接口.它仅仅表明它的类属于一个特定的类型,供其他代码来测试允许做一些事情。
+
+标记接口作用：简单形象的说就是给某个对象打个标（盖个戳），使对象拥有某个或某些特权。
+
+例如：java.awt.event 包中的 MouseListener 接口继承的 java.util.EventListener 接口定义如下：
+```java
+package java.util;
+public interface EventListener
+{}
+```
+没有任何方法的接口被称为标记接口。标记接口主要用于以下两种目的：
+
+- 建立一个公共的父接口：
+正如EventListener接口，这是由几十个其他接口扩展的Java API，你可以使用一个标记接口来建立一组接口的父接口。例如：当一个接口继承了EventListener接口，Java虚拟机(JVM)就知道该接口将要被用于一个事件的代理方案。
+
+- 向一个类添加数据类型：
+这种情况是标记接口最初的目的，实现标记接口的类不需要定义任何接口方法(因为标记接口根本就没有方法)，但是该类通过多态性变成一个接口类型。
