@@ -3,8 +3,8 @@ title: WSL2出现:Zone.Identifier
 published: 2025-03-11
 description: 'WSL2出现:Zone.Identifier如何解决？'
 image: ''
-tags: [WSL2]
-category: 'WSL2'
+tags: [wsl2]
+category: 'wsl2'
 draft: false 
 ---
 
