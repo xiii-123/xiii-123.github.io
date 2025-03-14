@@ -1,6 +1,6 @@
 ---
 title: Java枚举类型
-published: 2025-03-10
+published: 2025-03-13
 description: 'Java枚举类型有那些你不知道的用法'
 image: ''
 tags: [java, 枚举]
@@ -116,3 +116,65 @@ Universal Color
 3. `Constructor called for : BLUE`
    - 最后，第三个枚举常量`BLUE`的构造函数被调用。
 
+## 高级用法
+那这样的代码你见过吗：
+```java
+enum Color {
+    SPADE("♠"), HEAT("♥"), CLUB("♣"), DIAMOND("♦");
+
+    private final String symbol;
+
+    Color(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+}
+```
+是不是很神奇，让我们来测试一下上述代码：
+```java
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(Color.SPADE.getSymbol());
+        System.out.println(Color.CLUB.getSymbol());
+        System.out.println(Color.DIAMOND.getSymbol());
+        System.out.println(Color.HEAT.getSymbol());
+    }
+}
+```
+输出为：
+```bash
+♠
+♣
+♦
+♥
+```
+**解释**：当上述的`Color`枚举类被加载到JVM时，以下步骤会发生：
+1. **类加载**：
+   - JVM的类加载器负责读取`Color.class`文件，并将其数据加载到内存中。
+2. **静态初始化**：
+   - 在类加载的过程中，JVM会为`Color`枚举类分配内存，并初始化其静态字段。
+   - 由于枚举常量是静态的，它们会在类加载时被创建和初始化。
+3. **枚举常量实例化**：
+   - 对于`Color`枚举类中的每个枚举常量（`SPADE`, `HEART`, `CLUB`, `DIAMOND`），JVM会按照它们在枚举类中声明的顺序，依次执行以下操作：
+     - 分配内存空间。
+     - 调用构造方法`Color(String symbol)`，并传入相应的符号字符串（例如，对于`SPADE`，会传入"♠"）。
+     - 初始化实例字段`symbol`。
+4. **枚举常量的赋值**：
+   - 每个枚举常量被实例化后，它们会被赋值给对应的静态常量字段。这些字段在枚举类中是隐式声明的，即使你没有在代码中明确写出这些字段。
+以下是上述步骤的具体实现细节：
+```java
+// 隐式声明的静态常量字段
+static final Color SPADE = new Color("♠");
+static final Color HEART = new Color("♥");
+static final Color CLUB = new Color("♣");
+static final Color DIAMOND = new Color("♦");
+// 构造方法
+private Color(String symbol) {
+    this.symbol = symbol;
+}
+```
+在类加载完成后，`Color`枚举类的四个枚举常量`SPADE`, `HEART`, `CLUB`, `DIAMOND`就已经被创建并初始化，它们的`symbol`字段也被设置好了。此时，这些枚举常量就可以在整个程序中被安全地使用，而无需担心它们的状态或初始化问题。
+总结来说，当`Color`枚举类加载时，它的枚举常量被实例化，并且它们的构造方法被调用，以初始化每个枚举常量的状态。这些操作只发生一次，即在类首次被加载到JVM时。
