@@ -459,4 +459,101 @@ public class ProducerConsumerWithBlockingQueue {
 - `Producer`类负责生产数据，并将数据放入阻塞队列中。如果队列已满，`put()`方法会阻塞，直到队列中有空间。
 - `Consumer`类负责从阻塞队列中取出数据。如果队列为空，`take()`方法会阻塞，直到队列中有数据可以取出。
 - `ArrayBlockingQueue`是一个有界阻塞队列，其容量在创建时指定。
+
 使用阻塞队列可以简化生产者消费者模型的实现，因为它自动处理了线程同步和等待通知机制，从而避免了手动使用`wait()`和`notifyAll()`的需要。
+
+# 线程池
+Java中的线程池是一种用于管理和重用线程的机制，它可以提高性能并减少创建线程和销毁线程的开销。以下是对Java线程池的介绍：
+## 1. Executor 提供的默认创建线程池
+Java中的`java.util.concurrent`包提供了`Executors`类，它包含一些静态工厂方法来创建线程池。以下是几个常用的方法：
+- `Executors.newCachedThreadPool()`：创建一个可根据需要创建新线程的线程池，但会在先前构建的线程可用时重用它们。这个线程池在执行很多短期异步任务时很有用。
+- `Executors.newFixedThreadPool(int nThreads)`：创建一个可重用固定数量线程的线程池。如果所有线程都处于活动状态，则提交的新任务将在队列中等待，直到有线程可用。
+- `Executors.newSingleThreadExecutor()`：创建一个单线程的Executor，确保所有任务都在同一线程中按顺序执行。
+- `Executors.newScheduledThreadPool(int corePoolSize)`：创建一个可定时执行或周期性执行任务的线程池。
+## 2. 自定义线程池
+`ThreadPoolExecutor` 构造函数有七个参数。以下是完整的参数列表及其说明：
+1. `int corePoolSize`：线程池中的核心线程数，即使它们是空闲的，这些线程也会保持活跃状态。
+2. `int maximumPoolSize`：线程池中允许的最大线程数。
+3. `long keepAliveTime`：当线程数大于核心线程数时，这是多余空闲线程在终止前等待新任务的最长时间。
+4. `TimeUnit unit`：`keepAliveTime` 参数的时间单位。
+5. `BlockingQueue<Runnable> workQueue`：用于在执行任务之前保存任务的队列。这个队列仅保存由 `execute` 方法提交的 `Runnable` 任务。
+6. `ThreadFactory threadFactory`：执行程序创建新线程时使用的工厂。
+7. `RejectedExecutionHandler handler`：当队列满并且线程数达到最大线程数时，用于处理无法执行的任务的处理程序。
+以下是一个包含所有参数的 `ThreadPoolExecutor` 示例：
+```java
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.Executors;
+public class CustomThreadPoolExample {
+    public static void main(String[] args) {
+        int corePoolSize = 5;
+        int maximumPoolSize = 10;
+        long keepAliveTime = 5000;
+        TimeUnit unit = TimeUnit.MILLISECONDS;
+        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(100);
+        ThreadFactory threadFactory = Executors.defaultThreadFactory();
+        RejectedExecutionHandler handler = new ThreadPoolExecutor.CallerRunsPolicy(); // 一种拒绝策略
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                corePoolSize,
+                maximumPoolSize,
+                keepAliveTime,
+                unit,
+                workQueue,
+                threadFactory,
+                handler
+        );
+        // 提交任务到线程池
+        for (int i = 0; i < 20; i++) {
+            executor.execute(new Task());
+        }
+        // 关闭线程池
+        executor.shutdown();
+    }
+    static class Task implements Runnable {
+        @Override
+        public void run() {
+            System.out.println("Executing task: " + Thread.currentThread().getName());
+            // 执行具体任务
+        }
+    }
+}
+```
+在这个例子中，我们使用了 `ThreadPoolExecutor.CallerRunsPolicy` 作为拒绝策略，这意味着当任务无法被线程池接受时，提交任务的线程将尝试自己执行该任务。还有其他几种拒绝策略，如 `AbortPolicy`（抛出 `RejectedExecutionException`）、`DiscardPolicy`（默默丢弃无法处理的任务）和 `DiscardOldestPolicy`（丢弃队列中最旧的任务，然后重试执行）。
+
+## `submit`和`execute`
+在Java的`ExecutorService`接口中，`submit`和`execute`是两个用于提交任务执行的方法，它们之间有一些关键的区别：
+1. **返回值**:
+   - `submit`方法返回一个`Future`对象，该对象可以用来检查任务是否已完成，等待任务完成，并获取任务的结果（如果任务有返回结果的话）。这对于需要异步处理并获取处理结果的情况非常有用。
+   - `execute`方法没有返回值。它只是简单地执行任务，不提供任何关于任务状态或结果的信息。
+2. **异常处理**:
+   - 当使用`submit`方法提交任务时，如果任务在执行过程中抛出异常，那么这个异常可以被`Future.get()`方法捕获，或者在任务完成后通过`Future.isDone()`和`Future.cancel()`来处理。
+   - 使用`execute`方法提交的任务，如果抛出未捕获的异常，则默认情况下会由线程池中的线程处理，即异常会被打印到控制台并终止该线程。可以通过为线程设置一个未捕获异常处理器（`UncaughtExceptionHandler`）来捕获这些异常。
+3. **任务类型**:
+   - `submit`方法可以接受`Callable`和`Runnable`任务。`Callable`任务可以返回结果，而`Runnable`任务不能。
+   - `execute`方法只能接受`Runnable`任务。
+以下是一个简单的示例，展示了如何使用`submit`和`execute`：
+```java
+import java.util.concurrent.*;
+public class SubmitExecuteExample {
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        // 使用execute提交Runnable任务
+        executorService.execute(() -> System.out.println("Runnable task executed by execute."));
+        // 使用submit提交Callable任务
+        Future<String> future = executorService.submit(() -> {
+            System.out.println("Callable task executed by submit.");
+            return "Callable result";
+        });
+        // 获取Callable任务的结果
+        String result = future.get();
+        System.out.println("Result of callable task: " + result);
+        // 关闭ExecutorService
+        executorService.shutdown();
+    }
+}
+```
+在这个例子中，我们首先使用`execute`提交了一个`Runnable`任务，然后使用`submit`提交了一个`Callable`任务，并通过返回的`Future`对象获取了任务的结果。
