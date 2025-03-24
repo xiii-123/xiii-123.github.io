@@ -62,42 +62,57 @@ Vue.js 使用指令来扩展HTML标签的功能。指令带有`v-`前缀，表�
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vue指令示例</title>
+    <title>简化版Vue示例</title>
     <style>
-      .avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-      }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div id="app">
-        <h1>用户列表</h1>
+        <!-- v-model示例：双向绑定输入框 -->
+        <input type="text" v-model="message" placeholder="输入消息" />
+        <p>{{ message }}</p>
+
+        <!-- v-bind示例：动态绑定图片地址 -->
+        <img :src="imageUrl" alt="动态图片" />
+
+        <!-- v-if/v-else-if/v-else示例：条件渲染 -->
+        <div v-if="number > 10">数字大于10</div>
+        <div v-else-if="number < 10">数字小于10</div>
+        <div v-else>数字等于10</div>
+
+        <!-- v-show示例：切换显示状态 -->
+        <button v-on:click="toggleVisibility">切换显示/隐藏</button>
+        <div v-show="isVisible">这是一个可切换显示的元素</div>
+
+        <!-- v-for示例：列表渲染 -->
         <ul>
-            <!-- 使用v-for指令遍历users数组，并使用v-bind指令绑定数据 -->
-            <li v-for="(user, index) in users" :key="index">
-                <!-- 使用v-bind指令绑定src属性 -->
-                <img :src="user.avatar" alt="用户头像" class="avatar">
-                <!-- 插值表达式显示用户名字 -->
-                <span>{{ user.name }}</span>
-            </li>
+            <li v-for="item in items" :key="item.id">{{ item.text }}</li>
         </ul>
     </div>
 
     <script type="module">
-      import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
-      createApp({
-        data() {
-          return {
-            users: [
-              { name: '张三', avatar: 'https://example.com/avatar1.jpg' },
-              { name: '李四', avatar: 'https://example.com/avatar2.jpg' },
-              { name: '王五', avatar: 'https://example.com/avatar3.jpg' }
-            ]
-          }
-        }
-      }).mount('#app')
+        import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+        createApp({
+            data() {
+                return {
+                    message: '', // v-model绑定的消息
+                    imageUrl: 'https://example.com/image.png', // v-bind绑定的图片地址
+                    number: 5, // v-if条件渲染使用的数字
+                    isVisible: true, // v-show控制显示状态的变量
+                    items: [ // v-for渲染的列表数据
+                        { id: 1, text: '列表项1' },
+                        { id: 2, text: '列表项2' },
+                        { id: 3, text: '列表项3' }
+                    ]
+                }
+            },
+            methods: {
+                toggleVisibility() { // v-on绑定的事件处理函数
+                    this.isVisible = !this.isVisible;
+                }
+            }
+        }).mount('#app')
     </script>
 </body>
 </html>
